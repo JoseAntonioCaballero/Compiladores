@@ -13,13 +13,15 @@ private:
     string fileContent;
 public:
     /* +-----------------------------------------------------------------
-       |    VALIDAR LOS PARÁMETROS
+       |    VALIDAR LOS PARAMETROS
        +----------------------------------------------------------------- */
     bool checkParameters(char** args){
+        // Obligatoriamente se debe especificar un archivo de entrada
         if(args[1] == NULL){
             cout << "No se ha especificado archivo de entrada.\n" << endl;
             return false;
         } else {
+            // Si no se especifica un archivo de salida, asignar valor por default
             char default_OutputFilename[] = "a.out";
             this->filename_in = args[1];
             this->filename_out = (args[2]!=NULL)?args[2]:default_OutputFilename;
@@ -30,11 +32,21 @@ public:
     /* +-----------------------------------------------------------------
        |    CARGAR EL CONTENIDO DEL ARCHIVO
        +----------------------------------------------------------------- */
-    void loadFile(){
-        inputFile.open(filename_in);
-            fileContent.assign((istreambuf_iterator<char>(inputFile)),
-                        (istreambuf_iterator<char>()) );
-        inputFile.close();
+    bool loadFile(){
+        // Validar que el archivo existe
+        bool file_exists = false;
+        try{
+            this->inputFile.open(filename_in);
+            file_exists = this->inputFile.is_open();
+            // Cargar el contenido del archivo en la cadena
+            this->fileContent.assign((istreambuf_iterator<char>(inputFile)),
+                                     (istreambuf_iterator<char>()));
+            this->inputFile.close();
+        }catch(int Exception){
+            file_exists = false;
+            cout << "El archivo especificado no existe" << endl;
+        }
+        return file_exists;
     }
 
     /* +-----------------------------------------------------------------
@@ -50,10 +62,11 @@ public:
             loadFile();
     }
 
+
     /* +-----------------------------------------------------------------
-       |    CONSTRUCTOR QUE RECIBE ARGUMENTOS
+       |    REGRESAR EL CONTENIDO LEIDO DEL ARCHIVO
        +----------------------------------------------------------------- */
-    string printFileContent(){
+    string getFileContent(){
         return this->fileContent;
     }
 };
@@ -61,6 +74,6 @@ public:
 int main(int nargs, char** args)
 {
     Compiler COMPILER(args);
-    cout << COMPILER.printFileContent() << endl;
+    cout << COMPILER.getFileContent() << endl;
     return 0;
 }
