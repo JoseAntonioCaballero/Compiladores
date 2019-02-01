@@ -1,6 +1,8 @@
 #include <iostream>
 #include <string>
 #include <fstream>
+#include <list>
+#include <algorithm>
 
 using namespace std;
 
@@ -8,9 +10,10 @@ class Compiler {
 private:
     char* filename_in;
     char* filename_out;
-    ifstream inputFile;
+    ifstream inputFile, reservedWordsFile;
     ofstream outputFile;
     string fileContent;
+    list<string> reservedWords;
 public:
     /* +-----------------------------------------------------------------
        |    VALIDAR LOS PARAMETROS
@@ -23,8 +26,8 @@ public:
         } else {
             // Si no se especifica un archivo de salida, asignar valor por default
             char default_OutputFilename[] = "a.out";
-            this->filename_in = args[1];
-            this->filename_out = (args[2]!=NULL)?args[2]:default_OutputFilename;
+            filename_in = args[1];
+            filename_out = (args[2]!=NULL)?args[2]:default_OutputFilename;
             return true;
         }
     }
@@ -36,12 +39,12 @@ public:
         // Validar que el archivo existe
         bool file_exists = false;
         try{
-            this->inputFile.open(filename_in);
-            file_exists = this->inputFile.is_open();
+            inputFile.open(filename_in);
+            file_exists = inputFile.is_open();
             // Cargar el contenido del archivo en la cadena
-            this->fileContent.assign((istreambuf_iterator<char>(inputFile)),
+            fileContent.assign((istreambuf_iterator<char>(inputFile)),
                                      (istreambuf_iterator<char>()));
-            this->inputFile.close();
+            inputFile.close();
         }catch(int Exception){
             file_exists = false;
             cout << "El archivo especificado no existe" << endl;
@@ -62,18 +65,47 @@ public:
             loadFile();
     }
 
+    /* +-----------------------------------------------------------------
+       |    CARGAR LA LISTA DE PALABRAS RESERVADAS
+       +----------------------------------------------------------------- */
+    void loadReservedWords(){
+        try{
+            reservedWordsFile.open("ReservedWords.txt");
+            if(reservedWordsFile.fail())
+                throw -1;
+            string readedWord;
+            while(!reservedWordsFile.eof()){
+                reservedWordsFile >> readedWord;
+                reservedWords.push_back(readedWord);
+            }
+        }catch(int Exception){
+            cout<< "No se pudo abrir el archivo de palabras reservadas" <<endl;
+        }
+    }
+
+    /* +-----------------------------------------------------------------
+       |    VERIFICAR SI UNA PALABRA ES RESERVADA
+       +----------------------------------------------------------------- */
+    bool isReservedWord(string word){
+        list<string>::iterator itemFinder = find(reservedWords.begin(), reservedWords.end(), word);
+        return (itemFinder!=reservedWords.end());
+    }
 
     /* +-----------------------------------------------------------------
        |    REGRESAR EL CONTENIDO LEIDO DEL ARCHIVO
        +----------------------------------------------------------------- */
     string getFileContent(){
-        return this->fileContent;
+        return fileContent;
     }
 };
 
 int main(int nargs, char** args)
 {
     Compiler COMPILER(args);
+    COMPILER.loadReservedWords();
     cout << COMPILER.getFileContent() << endl;
+
+    string someTestWord = "include";
+    cout << COMPILER.isReservedWord(someTestWord);
     return 0;
 }
