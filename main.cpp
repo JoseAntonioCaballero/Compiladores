@@ -4,7 +4,7 @@
 using namespace std;
 
 class LexicalAnalysis{
-    
+
 private:
     ifstream inputStream;
     ofstream outputStream;
@@ -27,7 +27,7 @@ public:
         }
     }
 
-    void tokenParsing(){
+    void createTokens(){
         string id;
         char c;
         while(!inputStream.eof()){
@@ -40,10 +40,21 @@ public:
                 outputStream<<"TokMayor"<<endl;
             else if(c=='<')
                 outputStream<<"TokMenor"<<endl;
+            else if(c=='/'){
+                c = inputStream.get();
+                if(c=='/')
+                    while(inputStream.get()!='\n')
+                        c = inputStream.get();
+                outputStream << "COMMENT" <<endl;
+            }
             else if(isalpha(c) || c=='_'){
                 c = inputStream.get();
-                while(isalpha(c) || c=='_')
+                while(isalnum(c) || c=='_'){
+                    id += c;
                     c=inputStream.get();
+                }
+                outputStream<<"(TokID,"<<id<<")";
+                inputStream.unget();
             }
             else
                 outputStream<<c;
@@ -57,6 +68,6 @@ int main(int nArgs, char** args)
     if(nArgs == 3)
         outputFile = args[2];
     LexicalAnalysis LEXICAL(args[1], outputFile);
-    LEXICAL.tokenParsing();
+    LEXICAL.createTokens();
     return 0;
 }
