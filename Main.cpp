@@ -20,11 +20,8 @@ private:
     ofstream outputStream;
     ifstream reservedWords_file;
     list<string> reserved_words;
-    char* archivoSalida;
 
 public:
-    
-
     /*-----------------------------------------------------------------------
      *      CONSTRUCTORES DE LA CLASE
      *----------------------------------------------------------------------- */
@@ -70,26 +67,27 @@ public:
     /*-----------------------------------------------------------------------
      *      IDENTIFICACIÓN DE TOKENS
      *----------------------------------------------------------------------- */
-    void generateTokens(){
+    void generateTokens()
+    {
         string id;
         char c;
 
         while(!inputStream.eof()){
-            c=inputStream.get();
-            if(c=='(')
+            c = inputStream.get();
+            if(c == '(')
                 outputStream<<"TokPI"<<endl;
-            else if(c==';')
+            else if(c == ';')
                 outputStream<<"TokPyK"<<endl;
-            else if(c=='>')
+            else if(c == '>')
                 outputStream<<"TokMayor"<<endl;
-            else if(c=='<')
+            else if(c == '<')
                 outputStream<<"TokMenor"<<endl;
 
-            else if(isalpha(c)|| c== '_'){  // Nombres de variables
-                id=c;
-                c=inputStream.get();
+            else if(isalpha(c) || c== '_'){  // Nombres de variables
+                id = c;
+                c = inputStream.get();
                 while(isalnum(c) || c== '_'){
-                    id+=c;
+                    id += c;
                     c=inputStream.get();
                 }
                 if(!isReservedWord((char*)id.c_str()))  // Palabras reservadas
@@ -98,30 +96,30 @@ public:
                      outputStream<<"(TokPR,"<<id<<")";
                 outputStream<<"(TokenID,"<<id<<")";
                 inputStream.unget();
-            } else if(c=='/'){  // Comentarios de una sola linea
-                c=inputStream.get();
-                if(c=='/'){
-                    c= inputStream.get();
-                    while(c!='\n')
-                        c=inputStream.get();
+            } else if(c == '/'){  // Comentarios de una sola linea
+                c = inputStream.get();
+                if(c == '/'){
+                    c = inputStream.get();
+                    while(c != '\n')
+                        c = inputStream.get();
                     inputStream.unget();
                     outputStream<<"TokComentario Corto";
                 } else if(isalpha(c)){
                     outputStream<<"TokDiv";
                     inputStream.unget();
-                }else if(c=='*'){   // Comentarios multilínea
+                }else if(c == '*'){   // Comentarios multilínea
                     char d;
                     do{
                         while(inputStream.get()!='*');
                             inputStream.unget();
                         while(inputStream.get()=='*');
                             inputStream.unget();
-                            if((d=inputStream.get())=='/'){
+                            if((d=inputStream.get()) == '/'){
                                 outputStream<<"TokComentario largo";
                                 inputStream.unget();
                                 break;
                             }
-                    }while(d!='/');
+                    }while(d != '/');
                 }
             } else {
                 outputStream<<c;
@@ -129,7 +127,6 @@ public:
         }
     }
 };
-
 
 int main(int nArgs, char** args)
 {
