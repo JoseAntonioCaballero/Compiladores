@@ -1,60 +1,81 @@
 #include <iostream>
 #include <fstream>
+#include <stdlib.h>
 #include <list>
 #include <string.h>
 
 using namespace std;
 
-class LexicalAnalysis{
+/*-----------------------------------------------------------------------
+ *      REPORTAR UN ERROR AL USUARIO
+ *----------------------------------------------------------------------- */
+void reportError(const char* description){
+    cout << "   ---[ ERROR ]---"<<endl<<" "<<description<<endl;
+    exit(-1);
+}
 
+class LexicalAnalysis{
 private:
-    ifstream inputStream, palabrasReservadas;
+    ifstream inputStream;
     ofstream outputStream;
-    char* output_file;
-    list<string> listaPalabras;
-    void(cAnalisisLexico)
+    ifstream reservedWords_file;
+    list<string> reserved_words;
+    char* archivoSalida;
+
 public:
+    
+
+    /*-----------------------------------------------------------------------
+     *      CONSTRUCTORES DE LA CLASE
+     *----------------------------------------------------------------------- */
     LexicalAnalysis(){}
 
     LexicalAnalysis(char* s){}
 
-    LexicalAnalysis(char* input_file, char* result_file){
-        inputStream.open(input_file);
-        try{
-            if(inputStream.fail())
-                throw 1;
-            cout<<"Open file successful"<<endl;
-            outputStream.open(result_file);
-            string cad;
-            while(!palabrasReservadas.eof()){
-                palabrasReservadas >> cad;
-                listaPalabras.push_back(cad);
-            }
-            /*for(list<string>::iterator it = listaPalabras.begin(); it!=listaPalabras.end(); it++){
-                cout << *it <<endl;
-            }*/
+    LexicalAnalysis(char* input_filename, char* output_filename)
+    {
+        try {
+            inputStream.open(input_filename);
+            if(inputStream.fail()) throw 1;
+            reservedWords_file.open("PalabrasReservadas.txt");
+            if(reservedWords_file.fail()) throw 2;
 
-        }catch (int i){
-           cout << ((i==1)?"File cant be opened":"Unknow error");
+            string temp_reader;
+            while(!reservedWords_file.eof()){
+                reservedWords_file>>temp_reader;
+                reserved_words.push_back(temp_reader);
+            }
+
+            outputStream.open(output_filename);
+        } catch (int Exception) {
+            switch(Exception){
+                case 1: reportError("No se pudo abrir el archivo fuente"); break;
+                case 2: reportError("No se pudo abrir el archivo de palabras reservadas"); break;
+            }
         }
     }
 
-    bool esReservada(const char* id){
-        bool encontrada = false;
-        for(list<string>::iterator it = listaPalabras.begin(); it!=listaPalabras.end(); it++){
-            if(strcmp(id, (*it).c_str())){
-                encontrada = true;
-                break;
-            }
+    /*-----------------------------------------------------------------------
+     *      VERIFICAR SI LA PALABRA DADA, ES RESERVADA
+     *----------------------------------------------------------------------- */
+    bool isReservedWord(char* word)
+    {
+        for(list<string>::iterator i=reserved_words.begin();i!=reserved_words.end();i++){
+            if(strcmp(word,(*i).c_str())==0)
+                return true;
         }
-        return encontrada;
+        return false;
     }
 
-    void createTokens(){
+    /*-----------------------------------------------------------------------
+     *      IDENTIFICACIÓN DE TOKENS
+     *----------------------------------------------------------------------- */
+    void generateTokens(){
         string id;
         char c;
+
         while(!inputStream.eof()){
-            c = inputStream.get();
+            c=inputStream.get();
             if(c=='(')
                 outputStream<<"TokPI"<<endl;
             else if(c==';')
@@ -63,43 +84,66 @@ public:
                 outputStream<<"TokMayor"<<endl;
             else if(c=='<')
                 outputStream<<"TokMenor"<<endl;
-            else if(c=='/'){
-                c = inputStream.get();
-                if(c=='/')
-                    while(inputStream.get()!='\n')
-                        c = inputStream.get();
-                outputStream << "COMMENT" <<endl;
-            }
-            else if(isalpha(c) || c=='_'){
-                c = inputStream.get();
-                while(isalnum(c) || c=='_'){
-                    id += c;
+
+            else if(isalpha(c)|| c== '_'){  // Nombres de variables
+                id=c;
+                c=inputStream.get();
+                while(isalnum(c) || c== '_'){
+                    id+=c;
                     c=inputStream.get();
                 }
-                if(!esReservada(id.c_str()))
+                if(!isReservedWord((char*)id.c_str()))  // Palabras reservadas
                     outputStream<<"(TokID,"<<id<<")";
                 else
-                    outputStream<<"(TokPR,"<<id<<")";
+                     outputStream<<"(TokPR,"<<id<<")";
+                outputStream<<"(TokenID,"<<id<<")";
                 inputStream.unget();
-            }
-            else if(isdigit(c)){ // Constante
-                outputStream << "(TokCTE, "<<id<<")";
-            }
-            else if(c=='+' || c=='-'){ // Función exponencial
-    
-            }
-            else
+            } else if(c=='/'){  // Comentarios de una sola linea
+                c=inputStream.get();
+                if(c=='/'){
+                    c= inputStream.get();
+                    while(c!='\n')
+                        c=inputStream.get();
+                    inputStream.unget();
+                    outputStream<<"TokComentario Corto";
+                } else if(isalpha(c)){
+                    outputStream<<"TokDiv";
+                    inputStream.unget();
+                }else if(c=='*'){   // Comentarios multilínea
+                    char d;
+                    do{
+                        while(inputStream.get()!='*');
+                            inputStream.unget();
+                        while(inputStream.get()=='*');
+                            inputStream.unget();
+                            if((d=inputStream.get())=='/'){
+                                outputStream<<"TokComentario largo";
+                                inputStream.unget();
+                                break;
+                            }
+                    }while(d!='/');
+                }
+            } else {
                 outputStream<<c;
+            }
         }
     }
 };
 
+
 int main(int nArgs, char** args)
 {
-    char* outputFile = "TokenizedCode.txt";
-    if(nArgs == 3)
-        outputFile = args[2];
-    LexicalAnalysis LEXICAL(args[1], outputFile);
-    LEXICAL.createTokens();
+    // Obligatoriamente, necesitamos un archivo de entrada
+    if(args[1] == NULL)
+        reportError("No se ha especificado un archivo a procesar");
+
+    // Especificamos el nombre del archivo de salida. En GCC, por defecto se genera "a.out"
+    char default_name[] = {"a.txt"};
+    char* output_filename = (args[2] != NULL)?args[2]:default_name;
+
+    // Proceso de análisis léxico
+    LexicalAnalysis LEXER(args[1], output_filename);
+    LEXER.generateTokens();
+
     return 0;
 }
